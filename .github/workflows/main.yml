@@ -10,9 +10,28 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: notesdb
+          MYSQL_ROOT_PASSWORD: testrootpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install system libraries for mysqlclient
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-dev default-libmysqlclient-dev build-essential pkg-config
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -22,13 +41,30 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install mysqlclient
           pip install -r requirements.txt
 
       - name: Run migrations
-        run: python manage.py migrate
+        env:
+          DBENGINE: django.db.backends.mysql
+          DBNAME: notesdb
+          DBUSER: root
+          DBPASSWORD: testrootpass
+          DBHOST: 127.0.0.1
+          DBPORT: 3306
+        run: |
+          python manage.py migrate
 
       - name: Run tests
-        run: python manage.py test
+        env:
+          DBENGINE: django.db.backends.mysql
+          DBNAME: notesdb
+          DBUSER: root
+          DBPASSWORD: testrootpass
+          DBHOST: 127.0.0.1
+          DBPORT: 3306
+        run: |
+          python manage.py test
 
   deploy:
     needs: test
