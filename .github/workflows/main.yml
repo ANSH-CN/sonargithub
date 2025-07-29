@@ -72,5 +72,6 @@ jobs:
 
       - name: Deploy via Docker Compose
         run: |
-          docker-compose down -v
-          docker-compose up --build -d
+          docker compose down -v
+          docker compose up --build -d
+
